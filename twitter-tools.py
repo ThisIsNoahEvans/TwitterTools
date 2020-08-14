@@ -10,6 +10,7 @@ class colour:
 
 # Auth
 auth = tweepy.OAuthHandler("CONSUMER", "CONSUMER")
+# The acces keys should belong to the account you wish to carry out the tools with (an exception for Transfer Followers, run it for more infos)
 auth.set_access_token("ACCESS", "ACCESS")
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
 
@@ -150,18 +151,21 @@ def verifiedFollowers():
 
 
 
-
+# Remove Followers
 def removeFollowers():
     ids = []
 
     username = input('Enter your username: ')
 
     print('Starting to remove followers of', username, '- you\'ll see their Twitter user ID printed out when they have been blocked and unblocked.')
+    # Get followers of user
     for page in tweepy.Cursor(api.followers_ids, screen_name=username).pages():
         ids.extend(page)
 
+    # For each user in list of followers
     for user in ids:
         try:
+            # Block the user
             api.create_block(user)
             print('Blocked', user)
         except:
@@ -169,6 +173,7 @@ def removeFollowers():
             continue
 
         try:
+            # Unblock the user
             api.destroy_block(user)
             print('Unblocked', user)
         except:
@@ -176,7 +181,7 @@ def removeFollowers():
         
     print('Your followers should have been removed!')
 
-
+# Transfer Following
 def transferFollowing():
     usernameOriginal = input('Enter the username of your original account: ')
     usernameNew = input('Enter the username of your new account: ')
@@ -233,29 +238,36 @@ def transferFollowing():
 
         print('Your following should have been transferred!')
 
+# Tweet:
 def tweet():
     tweet = input("Enter a Tweet: ")
+    # Post Tweet
     api.update_status(tweet)
     print('Tweeted:', tweet)
 
 def tweetWithImage():
     tweet = input("Enter a Tweet: ")
 
+    # Initalise Tkinter
     import tkinter as tk
     from tkinter import filedialog
     root = tk.Tk()
     root.withdraw()
     print('Please select an image from the dialog.')
-    image = filedialog.askopenfilename()
+    # Select file
+    image = filedialog.askopenfilename(filetypes=[('PNG images', '.png'), ('JPEG images', '.jpg'), ('GIF images', '.gif')])
 
+    # Uplod the image to Twitter
     media = api.media_upload(image)
-    post_result = api.update_status(status=tweet, media_ids=[media.media_id])
+    # Post the Tweet
+    api.update_status(status=tweet, media_ids=[media.media_id])
     print('Tweeted:', tweet)
 
-
+# Percent function for Verified Followers
 def percent(verifiedFollowers,totalFollowers):
     percent = (verifiedFollowers / totalFollowers)
     percent = percent * 100
     return percent
 
+# Run the menu when program launched
 menu()
