@@ -1,5 +1,6 @@
 import tweepy
 
+# Colour for print statements
 class colour:
     purple = '\033[95m'
     blue = '\033[94m'
@@ -12,6 +13,7 @@ auth = tweepy.OAuthHandler("CONSUMER", "CONSUMER")
 auth.set_access_token("ACCESS", "ACCESS")
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
 
+# Menu to choose tool
 def menu():
     # Menu
     print('Welcome to Twitter Tools!\nPlease choose a tool to begin:\n----------------------\n1. Verified Followers\n2. Remove Followers\n3. Transfer Following\n4. Tweet\n5. Tweet with Image\n----------------------')
@@ -32,85 +34,117 @@ def menu():
     if choice == '5':
         print('Tweet with Image')
         tweetWithImage()
+    # User entered something other than 1...5
     else:
         print('Oops, you didn\'t select a valid choice.')
         menu()
 
+# Verified Followerss 
 def verifiedFollowers():
+    # Get user's home directory
     from os import environ
     homedir = environ.get("HOME")
-    if homedir == None: # on windows it is $HOMEPATH
+    # On Windows, it is HOMEPATH
+    if homedir == None:
         homedir = environ.get("HOMEPATH")
     assert type(homedir) == str
 
+    # IDs of followers
     ids = []
+    # Count of verified followers
     count = int(0)
+    # Count of all followers
     personNo = int(1)
 
     username = input('Enter your username: ')
     print('Finding followers of @' + username + '...')
+    # Add the IDs of every one of the user's followers to 'ids'
     for page in tweepy.Cursor(api.followers_ids, screen_name=username).pages():
        ids.extend(page)
 
+    # Open the text file
+    textFile = open(f'{homedir}/verified-followers.txt', 'a')
     print('Checking for verification...', colour.end)
-    for person in page:
-        personData = api.get_user(person)
-        personVerified = personData.verified
-        if personVerified == True:
+    # For each follower (person) in 'ids'
+    for follower in ids:
+        # Get the follower's data
+        followerData = api.get_user(follower)
+        # Get their screen name
+        followerUsername = followerData.screen_name
+        # A bool dictating if the follower is verified or not
+        followerVerified = followerData.verified
+        
+        # If the follower is verified
+        if followerVerified == True:
             count = count + 1
-            personUsername = personData.screen_name
-            print(colour.green, f'Your follower @{personUsername} is verified! (#{personNo})', colour.end)
-
-            textFile = open(f'{homedir}/verified-followers.txt', 'a')
-            textFile.write(personUsername + '\n')
+            print(colour.green, f'Your follower @{followerUsername} is verified! (#{personNo})', colour.end)
+            # Add the user to the text file
+            textFile.write(followerUsername + '\n')
+        # If the follower is not verified
         else:
-            personUsername = personData.screen_name
-            print(colour.red, f'Your follower @{personUsername} is not verified. (#{personNo})', colour.end)
+            print(colour.red, f'Your follower @{followerUsername} is not verified. (#{personNo})', colour.end)
     
         personNo = personNo + 1
 
-
+    # Close the text file
+    textFile.close()
+    # If the user has 0 verified followers
     if count == 0:
-        user = api.get_user(username)
-        followers = user.followers_count
+        # Get the user data of the person using this tool
+        userData = api.get_user(username)
+        followers = userData.followers_count
         followers = int(followers)
         print(colour.purple, 'You have', followers, 'followers.')
         print('Of those, you have no verified followers.', colour.end)
+    # If the user has 1 verified follower
     if count == 1:
+        # Open the text file
         with open (f'{homedir}/verified-followers.txt') as textFileRead:
+            # Get each line of the text file (should only be one for one verified follower)
             lines = textFileRead.readlines()
             follower = str(lines)
+            # Remove the line break
             follower = follower.replace('\n', '')
+        # Close the file
         textFileRead.close()
-        user = api.get_user(username)
-        followers = user.followers_count
+        # Get the user data of the person using this tool
+        userData = api.get_user(username)
+        followers = userData.followers_count
         followers = int(followers)
         print(colour.purple, 'You have', followers, 'followers.')
         print('Of those, you have 1 verified follower. Their username is @' + follower + '.')
-        print('You can view a list of all of your verified followers in the text file.', colour.end)
 
-
+    # If the user has more than one verified follower
     if count > 1:
-        user = api.get_user(username)
-        followers = user.followers_count
+        # Get the user data of the person using this tool
+        userData = api.get_user(username)
+        followers = userData.followers_count
         followers = int(followers)
         print(colour.purple, 'You have', followers, 'followers.')
         print('Of those, you have', count, 'verified followers.')
         print('You can view a list of all of your verified followers in the text file.')
+        # Get the percentage of verified followers to total followers
         percentFollowers = percent(count, followers)
         percentFollowers = int(percentFollowers)
         print(percentFollowers, 'percent of your followers are verified, approximately.', colour.end, colour.blue)
         pieQ = input('Do you want a pie chart created? This will be saved to to your user / home folder. (y/n)')
         print(colour.end)
+        # If user wants a pie chart
         if 'y' in pieQ:
             import pygal
+            # Round the percentage of followers who are verified
             verifiedPie = round(percentFollowers)
+            # Work out the percent of followers who are not verified - total followers minus the verified followers
             notVerified = followers - count
+            # Get the percentage of the not verified followers
             notVerifiedPie = percent(notVerified, followers)
+            # Define the piechart
             piechart = pygal.Pie()
             piechart.add('Verified', verifiedPie)
             piechart.add('Not Verified', notVerifiedPie)
+            # Render the pie chart
             piechart.render()
+            # Save the pie chart
             piechart.render_to_png(f'{homedir}/verified-followers.png')
             print(colour.purple, 'A pie chart with your followers data has been saved to your home folder.', colour.end)
 
